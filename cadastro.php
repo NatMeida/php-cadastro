@@ -65,36 +65,58 @@
 </html>
 
 <?php
+define('UPLOAD_DIR', 'upload/pictures/');
+define('MAX_FILE_SIZE', 1024 * 1024 * 2); // 2MiB
+
 if ($_SERVER["REQUEST_METHOD"] === 'POST') {
     try {
         $ra = $_POST["ra"];
         $nome = $_POST["nome"];
         $curso = $_POST["curso"];
 
+        $foto = $_FILES["foto"];
+        $fotoName = $foto["name"];
+        $fotoType = $foto["type"];
+        $fotoSize = $foto["size"];
+
         if ((trim($ra) == "") || (trim($nome) == "")) {
-            echo "<span id= 'warning'> RA e nome são obrigatórios!</span>";
+            echo "<span id= 'warning'>RA e nome são obrigatórios!</span>";
+        } else if (trim($fotoName) == "" && !preg_match('/^image\/(jpg|jpeg|png|gif)$/',$tipoFoto)) {
+            echo "<span id= 'warning'>Foto inválida!</span>";
+        } else if ($fotoSize > MAX_FILE_SIZE) {
+            echo "<span id= 'warning'>Foto muito grande!</span>";
         } else {
-            include("database.php");
+            $fileInfo = new SplFileInfo($fotoName);
+            $fileExtension = $fileInfo->getExtension();
+            $finalFileName = UPLOAD_DIR	. $ra . '.' . $fileExtension;
 
-            $stmt = $pdo->prepare("select * from alunos where ra = :ra");
-            $stmt->bindParam(':ra', $ra);
-            $stmt->execute();
-
-            $rows = $stmt->rowCount();
-
-            // INSERT INTO alunos (ra, nome, curso) VALUES 201306, 'Natália', 'PD';
-
-            if ($rows <= 0) {
-                $stmt = $pdo->prepare("insert into alunos (ra, nome, curso) values (:ra, :nome, :curso)");
+            if (move_uploaded_file($foto["tmp_name"], $finalFileName)) {
+                include("database.php");
+    
+                $stmt = $pdo->prepare("select * from alunos where ra = :ra");
                 $stmt->bindParam(':ra', $ra);
-                $stmt->bindParam(':nome', $nome);
-                $stmt->bindParam(':curso', $curso);
-
                 $stmt->execute();
-                echo "<span id='sucess'>Aluno cadastrado!</span>";
+    
+                $rows = $stmt->rowCount();
+    
+    
+                if ($rows <= 0) {
+                    $stmt = $pdo->prepare("insert into alunos (ra, nome, curso, foto) values (:ra, :nome, :curso, :foto)");
+                    $stmt->bindParam(':ra', $ra);
+                    $stmt->bindParam(':nome', $nome);
+                    $stmt->bindParam(':curso', $curso);
+                    $stmt->bindParam(':foto', $finalFileName);
+    
+                    $stmt->execute();
+                    echo "<span id='sucess'>Aluno cadastrado!</span>";
+                } else {
+                    unlink($finalFileName);
+                    echo "<span id='error'>RA já existente!</span>";
+                }
             } else {
-                echo "<span id='error'>RA já existente!</span>";
-            }
+                echo "<span id='error'>Erro ao salvar a foto!</span>";
+            };
+
         }
     } catch (PDOException $e) {
         echo 'Error: ' . $e->getMessage();

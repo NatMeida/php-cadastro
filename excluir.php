@@ -3,12 +3,24 @@ if (isset($_POST["ra"]) && ($_POST["ra"] != "")) {
     include("database.php");
 
     $ra = $_POST["ra"];
-    $stmt = $pdo->prepare("delete from alunos where ra = :ra");
-    $stmt->bindParam(':ra', $ra);
 
+    $stmt = $pdo->prepare("select foto from alunos where ra = :ra");
+    $stmt->bindParam(':ra', $ra);
     $stmt->execute();
 
-    $msg = $stmt->rowCount() >= 1 ? "Registro excluído com sucesso!" : "Registro não excluído!";
+    $foto = $stmt->rowCount() == 1 ? $stmt->fetch()['foto'] : null;
+    
+    if ($foto != null && unlink($foto)) {
+        $stmt = $pdo->prepare("delete from alunos where ra = :ra");
+        $stmt->bindParam(':ra', $ra);
+        
+        $stmt->execute();
+
+        $msg = $stmt->rowCount() >= 1 ? "Registro excluído com sucesso!" : "Registro não excluído!";
+    } else {
+        $msg = "Foto não excluída!";
+    }
+
 } else {
     $msg = "RA não informado";
 }

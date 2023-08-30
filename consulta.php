@@ -53,9 +53,9 @@ $stmt->execute();
             echo "<td>{$row['curso']}</td>";
 
             if ($row['foto'] != null) {
-                echo "<td><img src='data:image/jpeg;base64," . base64_encode($row['foto']) . "' width='50px' height='50px' ></td>";
+                echo "<td><img src='{$row['foto']}' width='50px' height='50px' ></td>";
             } else {
-                echo "<td></td>";
+                echo "<td>-</td>";
             }
         }
 
